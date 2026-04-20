@@ -1,0 +1,3 @@
+bob	65536:XCTPkYSq92Cro7IUxLxIbA==:y59cjxvx0lY2DkHNV5+Ff6URXEuAtCNNyW8aJQsUd+0=	persistent-kw-test
+alice	65536:tf4l/lKn5z/6OJgbgY670w==:HCf1xhdtArY5nnBwQGqFApXFrUWPGOjINRrjLCmDHSU=	hello
+changetest	65536:KzubZXMkMBEVPVTetJcI7Q==:peoB2GL/uZWO+wwMls/IU/8q94K4VztMlBd8L3F/Lw8=	

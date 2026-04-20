@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Compile
+        run: |
+          mkdir -p out
+          javac -d out $(find src -name "*.java")
+
+      - name: Run unit tests
+        run: java -cp out tests.UserStoreTests
+
+      - name: Run integration tests
+        run: java -cp out tests.ServerIntegrationTests
