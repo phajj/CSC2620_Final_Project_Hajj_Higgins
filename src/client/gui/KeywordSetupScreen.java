@@ -4,6 +4,7 @@ import client.network.ServerConnection;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.util.regex.Pattern;
 
 public class KeywordSetupScreen {
@@ -11,23 +12,32 @@ public class KeywordSetupScreen {
 	private JFrame frame;
 	private JTextField keywordField;
 	private JLabel messageLabel;
+	private JLabel hintLabel;
 	private String keyword = "";
 	private ServerConnection serverConn;
 	private String username;
+    private boolean redirectToMain = false;
+    private String initialKeyword = null;
 
-	private static final Pattern KEYWORD_PATTERN = Pattern.compile("^[A-Za-z0-9 ]{1,32}$");
+	public static final Pattern KEYWORD_PATTERN = Pattern.compile("^[A-Za-z0-9 ]{1,32}$");
 
 	public KeywordSetupScreen() {
-		this(new ServerConnection("localhost", 5555), null);
+		this(new ServerConnection("localhost", 5555), null, null, false);
 	}
 
 	public KeywordSetupScreen(ServerConnection conn) {
-		this(conn, null);
+		this(conn, null, null, false);
 	}
 
 	public KeywordSetupScreen(ServerConnection conn, String username) {
+		this(conn, username, null, false);
+	}
+
+	public KeywordSetupScreen(ServerConnection conn, String username, String initialKeyword, boolean redirectToMain) {
 		this.serverConn = conn;
 		this.username = username;
+		this.initialKeyword = initialKeyword;
+		this.redirectToMain = redirectToMain;
 		initUI();
 	}
 
@@ -54,7 +64,15 @@ public class KeywordSetupScreen {
 		panel.add(new JLabel("Keyword:"), gbc);
 		gbc.gridx = 1;
 		keywordField = new JTextField(20);
+		if (initialKeyword != null) keywordField.setText(initialKeyword);
 		panel.add(keywordField, gbc);
+		row++;
+
+		// Inline hint showing validation rules
+		gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2;
+		hintLabel = new JLabel("Allowed: 1-32 chars — letters, digits, spaces");
+		hintLabel.setForeground(Color.DARK_GRAY);
+		panel.add(hintLabel, gbc);
 		row++;
 
 		gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2;
@@ -88,7 +106,36 @@ public class KeywordSetupScreen {
 	}
 
 	public void display() {
-		SwingUtilities.invokeLater(() -> frame.setVisible(true));
+		SwingUtilities.invokeLater(() -> {
+			frame.setVisible(true);
+			// copy suggested keyword to clipboard if provided
+			if (initialKeyword != null && !initialKeyword.isEmpty()) {
+				try {
+					Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(initialKeyword), null);
+					// show transient toast confirming copy
+					JWindow toast = new JWindow(frame);
+					JPanel tpanel = new JPanel(new BorderLayout());
+					tpanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+					tpanel.setBackground(new Color(0,0,0,0));
+					JLabel msg = new JLabel("Keyword copied to clipboard");
+					msg.setOpaque(true);
+					msg.setBackground(new Color(60,63,65));
+					msg.setForeground(Color.WHITE);
+					msg.setBorder(BorderFactory.createEmptyBorder(8,12,8,12));
+					tpanel.add(msg, BorderLayout.CENTER);
+					toast.getContentPane().add(tpanel);
+					toast.pack();
+					Point loc = frame.getLocationOnScreen();
+					int x = loc.x + frame.getWidth() - toast.getWidth() - 20;
+					int y = loc.y + frame.getHeight() - toast.getHeight() - 20;
+					toast.setLocation(x, y);
+					toast.setAlwaysOnTop(true);
+					toast.setVisible(true);
+					new javax.swing.Timer(1500, ev -> toast.dispose()).start();
+				} catch (Exception ignored) {
+				}
+			}
+		});
 	}
 
 	private void onSave() {
@@ -104,9 +151,15 @@ public class KeywordSetupScreen {
 			boolean connected = (serverConn != null) && serverConn.connect();
 			if (connected) {
 				String resp = serverConn.sendCommand("SET_KEYWORD " + kw);
-				if (resp != null && (resp.equalsIgnoreCase("OK") || resp.toUpperCase().startsWith("OK") || resp.toUpperCase().startsWith("SUCCESS"))) {
+					if (resp != null && (resp.equalsIgnoreCase("OK") || resp.toUpperCase().startsWith("OK") || resp.toUpperCase().startsWith("SUCCESS"))) {
 					this.keyword = kw;
 					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(frame, "Keyword saved on server.", "Saved", JOptionPane.INFORMATION_MESSAGE));
+					if (redirectToMain) {
+						SwingUtilities.invokeLater(() -> {
+							frame.dispose();
+							try { new MainScreen(serverConn, username, "Keyword saved.").display(); } catch (Exception ex) { }
+						});
+					}
 				} else {
 					final String err = (resp == null) ? "No response from server" : resp;
 					SwingUtilities.invokeLater(() -> messageLabel.setText("Save failed: " + err));
@@ -114,6 +167,12 @@ public class KeywordSetupScreen {
 			} else {
 				this.keyword = kw;
 				SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(frame, "Saved locally (server unavailable).", "Saved", JOptionPane.INFORMATION_MESSAGE));
+				if (redirectToMain) {
+					SwingUtilities.invokeLater(() -> {
+						frame.dispose();
+						try { new MainScreen(serverConn, username, "Keyword saved (offline).").display(); } catch (Exception ex) { }
+					});
+				}
 			}
 
 			SwingUtilities.invokeLater(() -> messageLabel.setText(" "));

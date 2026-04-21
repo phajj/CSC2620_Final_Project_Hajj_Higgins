@@ -11,10 +11,16 @@ public class MainScreen {
     private JLabel statusLabel;
     private final ServerConnection serverConn;
     private final String username;
+    private String initialMessage;
 
     public MainScreen(ServerConnection serverConn, String username) {
+        this(serverConn, username, null);
+    }
+
+    public MainScreen(ServerConnection serverConn, String username, String initialMessage) {
         this.serverConn = serverConn;
         this.username = username;
+        this.initialMessage = initialMessage;
         initUI();
     }
 
@@ -61,7 +67,12 @@ public class MainScreen {
     }
 
     public void display() {
-        SwingUtilities.invokeLater(() -> frame.setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            frame.setVisible(true);
+            if (initialMessage != null && !initialMessage.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, initialMessage, "Info", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
     }
 
     public void updateStatus(String status) {

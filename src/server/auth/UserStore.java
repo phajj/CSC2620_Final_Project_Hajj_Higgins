@@ -94,6 +94,19 @@ public class UserStore {
         return ok;
     }
 
+    /**
+     * Register a new user only if the username does not already exist.
+     * Returns true when a new user was created, false if the user already exists.
+     */
+    public synchronized boolean register(String username, String password) {
+        if (passwordMap.containsKey(username)) return false;
+        String hashed = PasswordUtil.hashPassword(password);
+        passwordMap.put(username, hashed);
+        keywordMap.put(username, "");
+        persist();
+        return true;
+    }
+
     public synchronized boolean setKeyword(String username, String keyword) {
         if (!passwordMap.containsKey(username)) return false;
         keywordMap.put(username, keyword);

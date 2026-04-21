@@ -59,6 +59,15 @@ public class ClientHandler implements Runnable {
         String args = (firstSpace == -1) ? "" : trimmed.substring(firstSpace + 1);
 
         switch (cmd) {
+            case "REGISTER":
+                if (args.isEmpty()) return "ERROR: REGISTER requires username and password";
+                int spReg = args.indexOf(' ');
+                if (spReg == -1) return "ERROR: REGISTER requires username and password";
+                String regUser = args.substring(0, spReg);
+                String regPass = args.substring(spReg + 1);
+                boolean created = store.register(regUser, regPass);
+                return created ? "OK" : "ERROR: user exists";
+            
             case "LOGIN":
                 if (args.isEmpty()) return "ERROR: LOGIN requires username and password";
                 int sp = args.indexOf(' ');
