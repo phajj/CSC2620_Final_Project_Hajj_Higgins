@@ -79,19 +79,24 @@ public class UserStore {
     }
 
     /**
-     * Authenticate a user. If the user does not exist, create it with the provided password (hashed).
+     * Authenticate an existing user. Returns true only if the username exists and the password matches.
      */
-    public synchronized boolean authenticateOrCreate(String username, String password) {
-        if (!passwordMap.containsKey(username)) {
-            String hashed = PasswordUtil.hashPassword(password);
-            passwordMap.put(username, hashed);
-            keywordMap.put(username, "");
-            persist();
-            return true; // new user created
-        }
+    public synchronized boolean authenticateExistingUser(String username, String password) {
+        if (!passwordMap.containsKey(username)) return false;
         String stored = passwordMap.get(username);
-        boolean ok = PasswordUtil.verifyPassword(password, stored);
-        return ok;
+        return PasswordUtil.verifyPassword(password, stored);
+    }
+
+    /**
+     * Create a new user with the given password. Returns true when the user was created, false if the user already exists.
+     */
+    public synchronized boolean createUser(String username, String password) {
+        if (passwordMap.containsKey(username)) return false;
+        String hashed = PasswordUtil.hashPassword(password);
+        passwordMap.put(username, hashed);
+        keywordMap.put(username, "");
+        persist();
+        return true;
     }
 
     /**
@@ -99,12 +104,7 @@ public class UserStore {
      * Returns true when a new user was created, false if the user already exists.
      */
     public synchronized boolean register(String username, String password) {
-        if (passwordMap.containsKey(username)) return false;
-        String hashed = PasswordUtil.hashPassword(password);
-        passwordMap.put(username, hashed);
-        keywordMap.put(username, "");
-        persist();
-        return true;
+        return createUser(username, password);
     }
 
     public synchronized boolean setKeyword(String username, String keyword) {

@@ -65,7 +65,8 @@ public class ClientHandler implements Runnable {
                 if (spReg == -1) return "ERROR: REGISTER requires username and password";
                 String regUser = args.substring(0, spReg);
                 String regPass = args.substring(spReg + 1);
-                boolean created = store.register(regUser, regPass);
+                // Use explicit createUser for clearer semantics
+                boolean created = store.createUser(regUser, regPass);
                 return created ? "OK" : "ERROR: user exists";
             
             case "LOGIN":
@@ -74,7 +75,8 @@ public class ClientHandler implements Runnable {
                 if (sp == -1) return "ERROR: LOGIN requires username and password";
                 String user = args.substring(0, sp);
                 String pass = args.substring(sp + 1);
-                boolean ok = store.authenticateOrCreate(user, pass);
+                // Only authenticate existing users; do not create on LOGIN
+                boolean ok = store.authenticateExistingUser(user, pass);
                 if (ok) {
                     currentUser = user;
                     return "OK";
