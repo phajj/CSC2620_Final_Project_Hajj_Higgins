@@ -188,7 +188,5 @@ public class KeywordSetupScreen {
 		SwingUtilities.invokeLater(() -> keywordField.setText(keyword));
 	}
 
-	public static void main(String[] args) {
-		SwingUtilities.invokeLater(() -> new KeywordSetupScreen().display());
-	}
+
 }

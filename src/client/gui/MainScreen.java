@@ -173,7 +173,5 @@ public class MainScreen {
         }).start();
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new MainScreen().display());
-    }
+   
 }
