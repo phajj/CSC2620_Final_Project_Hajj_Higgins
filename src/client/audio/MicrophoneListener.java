@@ -26,6 +26,7 @@ public class MicrophoneListener {
     private volatile boolean running;
     private volatile boolean recordingMode;
     private Thread listenerThread;
+    private final StringBuilder commandBuffer = new StringBuilder();
 
     public MicrophoneListener(String modelPath, KeywordDetector keywordDetector) {
         this.modelPath = modelPath;
@@ -33,6 +34,7 @@ public class MicrophoneListener {
         if (keywordDetector != null) {
             keywordDetector.setRecordingListener(() -> {
                 recordingMode = true;
+                commandBuffer.setLength(0);
                 System.out.println("\n[Keyword detected] Recording command...");
             });
         }
@@ -128,10 +130,10 @@ public class MicrophoneListener {
      */
     private void handleTranscript(String transcript) {
         if (recordingMode) {
-            System.out.println("\n[Command]    " + transcript);
-            recordingMode = false;
-            if (keywordDetector != null) keywordDetector.resetRecordingMode();
-            if (commandListener != null) commandListener.onCommandCaptured(transcript);
+            if (commandBuffer.length() > 0) commandBuffer.append(' ');
+            commandBuffer.append(transcript);
+            System.out.println("\n[Command]    " + commandBuffer);
+            if (commandListener != null) commandListener.onCommandCaptured(commandBuffer.toString());
         } else {
             System.out.println("\n[Transcript] " + transcript);
             if (keywordDetector != null) keywordDetector.detect(transcript);
