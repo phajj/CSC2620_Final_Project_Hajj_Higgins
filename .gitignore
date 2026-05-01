@@ -28,3 +28,6 @@ target/
 
 # Vosk model directory (large binary files — download separately)
 model/
+
+# Used for testing speech to text in the CLI
+src/SpeechDemo.java

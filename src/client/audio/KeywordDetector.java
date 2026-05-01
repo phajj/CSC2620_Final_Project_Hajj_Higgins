@@ -49,6 +49,10 @@ public class KeywordDetector {
         return false;
     }
 
+    public String getKeyword() {
+        return keyword;
+    }
+
     public boolean isRecordingMode() {
         return recordingMode;
     }

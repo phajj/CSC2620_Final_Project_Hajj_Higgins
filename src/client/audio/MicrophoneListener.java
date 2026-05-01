@@ -19,12 +19,15 @@ public class MicrophoneListener {
 
     private static final float SAMPLE_RATE = 16000f;
     private static final int BUFFER_SIZE = 4096;
+    // ~128 ms per buffer read at 16 kHz/16-bit, so this is checked ~8x per second
+    private static final long SILENCE_MS = 3000L;
 
     private final String modelPath;
     private final KeywordDetector keywordDetector;
     private CommandListener commandListener;
     private volatile boolean running;
     private volatile boolean recordingMode;
+    private volatile long lastSpeechTime = 0L;
     private Thread listenerThread;
     private final StringBuilder commandBuffer = new StringBuilder();
 
@@ -35,6 +38,7 @@ public class MicrophoneListener {
             keywordDetector.setRecordingListener(() -> {
                 recordingMode = true;
                 commandBuffer.setLength(0);
+                lastSpeechTime = System.currentTimeMillis();
                 System.out.println("\n[Keyword detected] Recording command...");
             });
         }
@@ -52,8 +56,8 @@ public class MicrophoneListener {
         this.commandListener = listener;
     }
 
-    /** 
-     * Starts the microphone listener on a background daemon thread. 
+    /**
+     * Starts the microphone listener on a background daemon thread.
      */
     public void startListening() {
         if (running) return;
@@ -63,8 +67,8 @@ public class MicrophoneListener {
         listenerThread.start();
     }
 
-    /** 
-     * Signals the listener thread to stop and interrupts it if it is blocked on I/O. 
+    /**
+     * Signals the listener thread to stop and interrupts it if it is blocked on I/O.
      */
     public void stopListening() {
         running = false;
@@ -101,10 +105,24 @@ public class MicrophoneListener {
                     if (recognizer.acceptWaveForm(buffer, bytesRead)) {
                         String transcript = extractText(recognizer.getResult());
                         if (!transcript.isEmpty()) {
+                            lastSpeechTime = System.currentTimeMillis();
                             handleTranscript(transcript);
                         }
-                    } else if (!recordingMode) {
-                        System.out.print("\r[Listening]  " + padRight(extractText(recognizer.getPartialResult()), 60));
+                    } else {
+                        String partial = extractText(recognizer.getPartialResult());
+                        if (!partial.isEmpty()) {
+                            // Reset the silence clock whenever the recognizer is
+                            // actively picking up speech, even mid-utterance.
+                            lastSpeechTime = System.currentTimeMillis();
+                        }
+                        if (!recordingMode) {
+                            System.out.print("\r[Listening]  " + padRight(partial, 60));
+                        }
+                    }
+
+                    if (recordingMode && lastSpeechTime > 0 &&
+                            System.currentTimeMillis() - lastSpeechTime > SILENCE_MS) {
+                        finalizeCommand();
                     }
                 }
             }
@@ -125,18 +143,61 @@ public class MicrophoneListener {
     }
 
     /**
-     * Routes a completed transcript: checks for the keyword when idle, or captures
-     * it as a command when already in recording mode.
+     * @param transcript spoken words
+     * Routes a completed transcript: checks for the keyword when idle, or accumulates
+     * it into the command buffer when in recording mode.
      */
     private void handleTranscript(String transcript) {
         if (recordingMode) {
             if (commandBuffer.length() > 0) commandBuffer.append(' ');
             commandBuffer.append(transcript);
-            System.out.println("\n[Command]    " + commandBuffer);
-            if (commandListener != null) commandListener.onCommandCaptured(commandBuffer.toString());
+            System.out.println("\n[Recording]  " + commandBuffer);
         } else {
             System.out.println("\n[Transcript] " + transcript);
-            if (keywordDetector != null) keywordDetector.detect(transcript);
+            if (keywordDetector != null && keywordDetector.detect(transcript)) {
+                // Words spoken in the same utterance after the keyword are captured
+                // immediately so nothing said right after the keyword is lost.
+                String remainder = extractAfterKeyword(transcript, keywordDetector.getKeyword());
+                if (!remainder.isEmpty()) {
+                    commandBuffer.append(remainder);
+                    System.out.println("\n[Recording]  " + commandBuffer);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param transcript spoken words
+     * @param keyword wake up word
+     * Returns all words in {@code transcript} that follow the first occurrence of {@code keyword}
+     */
+    private String extractAfterKeyword(String transcript, String keyword) {
+        String[] words = transcript.split("\\s+");
+        for (int i = 0; i < words.length; i++) {
+            if (words[i].toLowerCase().equals(keyword)) {
+                StringBuilder sb = new StringBuilder();
+                for (int j = i + 1; j < words.length; j++) {
+                    if (sb.length() > 0) sb.append(' ');
+                    sb.append(words[j]);
+                }
+                return sb.toString();
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Called after 3 seconds of silence in recording mode. Resets state for the next keyword activation.
+     */
+    private void finalizeCommand() {
+        recordingMode = false;
+        if (keywordDetector != null) keywordDetector.resetRecordingMode();
+        lastSpeechTime = 0L;
+        String command = commandBuffer.toString().trim();
+        commandBuffer.setLength(0);
+        System.out.println("\n[Command complete] " + command);
+        if (commandListener != null && !command.isEmpty()) {
+            commandListener.onCommandCaptured(command);
         }
     }
 
@@ -161,7 +222,7 @@ public class MicrophoneListener {
         return "";
     }
 
-    /** 
+    /**
      * Left-justifies to keep the console line stable.
      */
     private String padRight(String s, int width) {

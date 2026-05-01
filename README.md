@@ -68,8 +68,6 @@ Vosk requires a local model directory to perform speech recognition. The **light
    Direct download link for the recommended lightweight model:
    `vosk-model-small-en-us-0.15.zip`
 
-2. Extract the zip file. You should get a folder named `vosk-model-small-en-us-0.15`.
+2. Extract the zip file. You should get a folder named `vosk-model-small-en-us-0.15`. Renamed the folder `'model'`
 
-3. Place the extracted folder in the project root (alongside `pom.xml`), or note the full path to it — you will need to supply this path when running the application.
-
-> **Note:** Larger models (e.g., `vosk-model-en-us-0.22`) are available if higher accuracy is needed, but they are significantly larger (~1.8 GB) and slower. For development and testing, stick with the small model.
+3. Place the extracted folder in the project root.
