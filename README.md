@@ -59,7 +59,7 @@ To clean previously compiled output before rebuilding:
 
 ## Setting Up the Vosk Speech Recognition Model
 
-Vosk requires a local model directory to perform speech recognition. The **lightweight English model** is recommended — it is fast, small (~40 MB), and accurate enough for most use cases.
+Vosk requires a local model directory to perform speech recognition. The **lightweight English model** is recommended as it runs faster and has a smaller file size.
 
 ### Recommended model: `vosk-model-small-en-us-0.15`
 
