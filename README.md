@@ -1,6 +1,7 @@
 # CSC2620_Final_Project_Hajj_Higgins_Palmer
 
 **Object Oriented Design Final Project**
+
 Group Members: Peter Hajj, Jackson Higgins, and Matthew Palmer
 
 ---
