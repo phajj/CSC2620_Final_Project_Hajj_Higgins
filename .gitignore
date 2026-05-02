@@ -26,7 +26,6 @@ userstore.txt
 hs_err_pid*
 replay_pid*
 
-<<<<<<< HEAD
 # Maven build output
 target/
 
@@ -35,10 +34,8 @@ model/
 
 # Used for testing speech to text in the CLI
 src/SpeechDemo.java
-=======
+
 pom.xml
-target
 .settings
 .classpath
 .project
->>>>>>> a54e5b3 (Updated gitignore to ignore local config files.)
