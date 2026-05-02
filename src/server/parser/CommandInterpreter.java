@@ -48,13 +48,24 @@ public class CommandInterpreter implements CommandExpression {
           return "ERROR: LOGIN requires username and password";
         String user = args.substring(0, sp);
         String pass = args.substring(sp + 1);
-        boolean ok = store.authenticateOrCreate(user, pass);
+        boolean ok = store.authenticateExistingUser(user, pass);
         if (ok) {
           currentUser = user;
           return "OK";
         } else {
           return "ERROR: invalid credentials";
         }
+      case "REGISTER":
+        if (args.isEmpty())
+          return "ERROR: REGISTER requires username and password";
+        int spReg = args.indexOf(' ');
+        if (spReg == -1)
+          return "ERROR: REGISTER requires username and password";
+        String regUser = args.substring(0, spReg);
+        String regPass = args.substring(spReg + 1);
+        // Use explicit createUser for clearer semantics
+        boolean created = store.createUser(regUser, regPass);
+        return created ? "OK" : "ERROR: user exists";
       case "SET_KEYWORD":
         if (args.isEmpty())
           return "ERROR: SET_KEYWORD requires keyword";
@@ -95,10 +106,8 @@ public class CommandInterpreter implements CommandExpression {
       case "LOGOUT":
         currentUser = null;
         return "OK";
-      case "PLAY":
-        songNameExpression.interpret(cmd);
       default:
-        return "ERROR: unknown command";
+        return songNameExpression.interpret(cmd);
     }
   }
 }
