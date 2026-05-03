@@ -34,3 +34,7 @@ model/
 
 # Used for testing speech to text in the CLI
 src/SpeechDemo.java
+
+.settings
+.classpath
+.project
