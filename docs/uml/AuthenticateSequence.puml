@@ -1,0 +1,68 @@
+@startuml AuthenticateSequence
+
+title Authentication Sequence
+
+actor Client
+participant "ClientHandler" as CH
+participant "CommandInterpreter" as CI
+participant "UserStore" as US
+participant "PasswordUtil" as PU
+database "userstore.txt" as FS
+
+== LOGIN ==
+
+Client -> CH : "LOGIN <username> <password>"
+CH -> CI : interpret("LOGIN <username> <password>")
+CI -> US : authenticateExistingUser(username, password)
+US -> US : passwordMap.containsKey(username)
+
+alt username not found
+    US --> CI : false
+    CI --> CH : "ERROR: invalid credentials"
+    CH --> Client : "ERROR: invalid credentials"
+else username found
+    US -> PU : verifyPassword(password, storedHash)
+    PU -> PU : parse storedHash → (iterations, salt, expected)
+    PU -> PU : pbkdf2(password, salt, iterations)
+    PU -> PU : constant-time compare(actual, expected)
+    PU --> US : boolean match
+
+    alt password mismatch
+        US --> CI : false
+        CI --> CH : "ERROR: invalid credentials"
+        CH --> Client : "ERROR: invalid credentials"
+    else password matches
+        US --> CI : true
+        CI -> CI : currentUser = username
+        CI --> CH : "OK"
+        CH --> Client : "OK"
+    end
+end
+
+== REGISTER ==
+
+Client -> CH : "REGISTER <username> <password>"
+CH -> CI : interpret("REGISTER <username> <password>")
+CI -> US : createUser(username, password)
+US -> US : passwordMap.containsKey(username)
+
+alt username already exists
+    US --> CI : false
+    CI --> CH : "ERROR: user exists"
+    CH --> Client : "ERROR: user exists"
+else username is new
+    US -> PU : hashPassword(password)
+    PU -> PU : SecureRandom → salt (16 bytes)
+    PU -> PU : pbkdf2(password, salt, 65536, 256)
+    PU -> PU : encode → "65536:<salt_b64>:<hash_b64>"
+    PU --> US : hashedPassword
+    US -> US : passwordMap.put(username, hashedPassword)
+    US -> US : keywordMap.put(username, "")
+    US -> FS : persist() — write all users to temp file\nthen atomic move to userstore.txt
+    FS --> US : success
+    US --> CI : true
+    CI --> CH : "OK"
+    CH --> Client : "OK"
+end
+
+@enduml
