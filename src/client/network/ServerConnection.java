@@ -82,6 +82,22 @@ public class ServerConnection {
   }
 
   /**
+   * Reads a single response line from the server without sending a command.
+   * Used to read follow-up messages such as the FILE_SIZE header after a PLAY
+   * response.
+   */
+  public synchronized String readLine() {
+    if (in == null)
+      return null;
+    try {
+      return in.readLine();
+    } catch (IOException e) {
+      disconnect();
+      return null;
+    }
+  }
+
+  /**
    * Reads exact amount of bytes from the socket and returns them.
    */
   public synchronized byte[] receiveAudioData(long size) {
